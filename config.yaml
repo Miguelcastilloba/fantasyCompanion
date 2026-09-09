@@ -108,7 +108,7 @@ freshness:
 
 orchestration:
   durable_queue: sqlite
-  max_job_runtime_seconds: 165
+  max_job_runtime_seconds: 900
   max_parallel_specialists: 2
   single_publisher_per_league_team_period: true
   persistent_job_deduplication: true

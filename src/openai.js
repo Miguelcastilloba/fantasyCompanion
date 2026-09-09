@@ -39,9 +39,9 @@ export class LunaClient {
     if (!this.apiKey) throw new LunaError("OPENAI_API_KEY is not configured");
     const requestedAt = isoUtc();
     const outputBudget = purpose?.startsWith("specialist:")
-      ? Math.min(this.maxOutputTokens, 6_000)
+      ? Math.min(this.maxOutputTokens, 20_000)
       : purpose === "research_editor"
-        ? Math.min(this.maxOutputTokens, 12_000)
+        ? Math.min(this.maxOutputTokens, 24_000)
         : this.maxOutputTokens;
     const body = {
       model: MODEL,
@@ -92,8 +92,27 @@ export class LunaClient {
     }
     let json;
     try { json = JSON.parse(text); } catch { json = { error: { message: text } }; }
-    if (!response.ok) throw new LunaError(`OpenAI ${purpose || "request"} failed with HTTP ${response.status}: ${json.error?.message || "unknown error"}`);
-    if (json.status === "incomplete" || json.incomplete_details) throw new LunaError(`OpenAI ${purpose || "request"} returned incomplete output`);
+    if (!response.ok) {
+      const message = `OpenAI ${purpose || "request"} failed with HTTP ${response.status}: ${json.error?.message || "unknown error"}`;
+      if (response.status === 429) {
+        const retryAfterMsHeader = Number(response.headers.get("retry-after-ms"));
+        const retryAfterSeconds = Number(response.headers.get("retry-after"));
+        const retryAfterMs = Number.isFinite(retryAfterMsHeader) && retryAfterMsHeader > 0
+          ? retryAfterMsHeader
+          : Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? retryAfterSeconds * 1000 : 15_000;
+        const error = new LunaError(message);
+        error.code = "RATE_LIMITED";
+        error.retryAfterMs = Math.min(Math.max(retryAfterMs, 1_000), 120_000);
+        throw error;
+      }
+      throw new LunaError(message);
+    }
+    if (json.status === "incomplete" || json.incomplete_details) {
+      const detail = typeof json.incomplete_details === "string"
+        ? json.incomplete_details
+        : json.incomplete_details?.reason || null;
+      throw new LunaError(`OpenAI ${purpose || "request"} returned incomplete output${detail ? ` (${detail})` : ""}`);
+    }
     if ((json.output || []).some((item) => (item.content || []).some((content) => content.type === "refusal"))) throw new LunaRefusalError(`OpenAI ${purpose || "request"} refused the task`);
     const outputText = responseText(json);
     if (!outputText) throw new LunaError(`OpenAI ${purpose || "request"} returned no usable output`);

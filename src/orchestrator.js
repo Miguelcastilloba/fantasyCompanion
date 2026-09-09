@@ -12,6 +12,9 @@ async function retry(label, attempts, operation, { deadlineAt } = {}) {
     try { return await operation(attempt); } catch (error) {
       lastError = error;
       if (error?.code === "TIMEOUT" || error?.code === "DEADLINE_EXCEEDED" || (deadlineAt && Date.now() >= Number(deadlineAt))) throw error;
+      if (error?.code === "RATE_LIMITED") {
+        await withDeadline(`${label} rate-limit backoff`, deadlineAt, () => new Promise((resolve) => setTimeout(resolve, error.retryAfterMs || 15_000)));
+      }
     }
   }
   throw new Error(`${label} failed after ${attempts} attempt(s): ${lastError?.message || lastError}`);
@@ -35,7 +38,7 @@ async function publishBlocked({ store, publisher, config, snapshot, reason, job,
   return result;
 }
 
-export async function processJob({ job, store, config, adapter, luna, publisher, fixture = null, now = new Date().toISOString(), deadlineAt = Date.now() + Number(config.orchestration.jobTimeoutMs || 165_000) } = {}) {
+export async function processJob({ job, store, config, adapter, luna, publisher, fixture = null, now = new Date().toISOString(), deadlineAt = Date.now() + Number(config.orchestration.jobTimeoutMs || 900_000) } = {}) {
   let snapshot;
   try {
     snapshot = fixture
@@ -83,9 +86,10 @@ export async function processJob({ job, store, config, adapter, luna, publisher,
 }
 
 export async function workerOnce({ store, config, adapter, luna, publisher, fixture = null, workerId = `worker-${process.pid}`, now = new Date().toISOString() } = {}) {
-  const job = store.leaseNextJob({ workerId, now });
+  const jobTimeoutMs = Number(config.orchestration.jobTimeoutMs || 900_000);
+  const job = store.leaseNextJob({ workerId, now, leaseSeconds: Math.ceil(jobTimeoutMs / 1000) + 300 });
   if (!job) return { status: "idle" };
-  const deadlineAt = Date.now() + Number(config.orchestration.jobTimeoutMs || 165_000);
+  const deadlineAt = Date.now() + jobTimeoutMs;
   try { return await processJob({ job, store, config, adapter, luna, publisher, fixture, now, deadlineAt }); } catch (error) {
     const timedOut = error instanceof DeadlineError || error?.code === "DEADLINE_EXCEEDED";
     store.failJob(job.id, error.message, { retry: timedOut ? false : job.attempts < 1 + Number(config.orchestration.bounded_retries || 0) });
