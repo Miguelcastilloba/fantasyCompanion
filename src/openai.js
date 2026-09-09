@@ -1,6 +1,7 @@
 import { isoUtc } from "./time.js";
 import { MODEL, REASONING_EFFORT } from "./constants.js";
 import { sha256 } from "./hash.js";
+import { DeadlineError, remainingMs } from "./deadline.js";
 
 export class LunaError extends Error {}
 export class LunaRefusalError extends LunaError {}
@@ -33,7 +34,7 @@ export class LunaClient {
   }
 
   async call(options = {}) {
-    const { input, purpose, structuredSchema = null, webSearch = true, overrides = {}, model, reasoning, reasoning_effort, max_output_tokens } = options;
+    const { input, purpose, structuredSchema = null, webSearch = true, overrides = {}, model, reasoning, reasoning_effort, max_output_tokens, deadlineAt } = options;
     if (model || reasoning || reasoning_effort || max_output_tokens || overrides.model || overrides.reasoning || overrides.reasoning_effort || overrides.max_output_tokens) throw new LunaError("Request-level model, reasoning, or output overrides are blocked");
     if (!this.apiKey) throw new LunaError("OPENAI_API_KEY is not configured");
     const requestedAt = isoUtc();
@@ -53,6 +54,9 @@ export class LunaClient {
     if (structuredSchema) body.text = { format: { type: "json_schema", name: "report_payload", strict: true, schema: structuredSchema } };
     this.requestLog.push({ requestedAt, purpose, model: body.model, reasoning_effort: body.reasoning.effort, max_output_tokens: outputBudget });
     const controller = new AbortController();
+    const remaining = remainingMs(deadlineAt);
+    const requestTimeoutMs = remaining === null ? this.timeoutMs : Math.min(this.timeoutMs, remaining);
+    if (requestTimeoutMs <= 0) throw new DeadlineError(`OpenAI ${purpose || "request"}`, deadlineAt);
     let timeout;
     let response;
     let text;
@@ -70,12 +74,18 @@ export class LunaClient {
       const timeoutPromise = new Promise((_, reject) => {
         timeout = setTimeout(() => {
           controller.abort();
-          reject(new LunaError(`OpenAI ${purpose || "request"} timed out after ${this.timeoutMs}ms`));
-        }, this.timeoutMs);
+          const error = new LunaError(`OpenAI ${purpose || "request"} timed out after ${requestTimeoutMs}ms`);
+          error.code = "TIMEOUT";
+          reject(error);
+        }, requestTimeoutMs);
       });
       await Promise.race([request, timeoutPromise]);
     } catch (error) {
-      if (error?.name === "AbortError") throw new LunaError(`OpenAI ${purpose || "request"} timed out after ${this.timeoutMs}ms`);
+      if (error?.name === "AbortError") {
+        const timeoutError = new LunaError(`OpenAI ${purpose || "request"} timed out after ${requestTimeoutMs}ms`);
+        timeoutError.code = "TIMEOUT";
+        throw timeoutError;
+      }
       throw error;
     } finally {
       clearTimeout(timeout);

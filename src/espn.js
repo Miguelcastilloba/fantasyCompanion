@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { DISPLAY_TIMEZONE, IDENTITY } from "./constants.js";
 import { displayTime, isoUtc } from "./time.js";
 import { sha256 } from "./hash.js";
+import { DeadlineError, remainingMs } from "./deadline.js";
 
 const LEAGUE_HOST = "lm-api-reads.fantasy.espn.com";
 const SCHEDULE_HOSTS = new Set(["site.api.espn.com", "site.web.api.espn.com"]);
@@ -213,29 +214,35 @@ export class EspnReadAdapter {
     this.timeoutMs = timeoutMs;
   }
 
-  async getJson(rawUrl, kind) {
+  async getJson(rawUrl, kind, { deadlineAt } = {}) {
     const url = assertAllowedReadUrl(rawUrl, kind);
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    const remaining = remainingMs(deadlineAt);
+    const requestTimeoutMs = remaining === null ? this.timeoutMs : Math.min(this.timeoutMs, remaining);
+    if (requestTimeoutMs <= 0) throw new DeadlineError(`ESPN ${kind} read`, deadlineAt);
+    const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
     try {
       const headers = { Accept: "application/json", "User-Agent": "fantasy-companion/1.0 read-only" };
       if (this.config.espn.s2 && this.config.espn.swid) headers.Cookie = `espn_s2=${this.config.espn.s2}; SWID=${this.config.espn.swid}`;
       const response = await this.fetchImpl(url, { method: "GET", headers, signal: controller.signal });
       if (!response.ok) throw new Error(`ESPN ${kind} read failed with HTTP ${response.status}`);
       return await response.json();
+    } catch (error) {
+      if (error?.name === "AbortError" && deadlineAt && Date.now() >= Number(deadlineAt)) throw new DeadlineError(`ESPN ${kind} read`, deadlineAt);
+      throw error;
     } finally {
       clearTimeout(timeout);
     }
   }
 
-  async readSnapshot() {
+  async readSnapshot({ deadlineAt } = {}) {
     const collectedAt = isoUtc();
-    let league = await this.getJson(this.config.espn.leagueUrl, "league");
+    let league = await this.getJson(this.config.espn.leagueUrl, "league", { deadlineAt });
     if (!league.settings?.rosterSettings || !league.settings?.scoringSettings) {
       const settingsUrl = new URL(this.config.espn.leagueUrl);
       settingsUrl.searchParams.delete("view");
       settingsUrl.searchParams.append("view", "mSettings");
-      const settingsResponse = await this.getJson(settingsUrl.toString(), "league");
+      const settingsResponse = await this.getJson(settingsUrl.toString(), "league", { deadlineAt });
       league = { ...league, settings: settingsResponse.settings || league.settings };
     }
     if (!Array.isArray(league.availablePlayers)) {
@@ -243,13 +250,14 @@ export class EspnReadAdapter {
         const playersUrl = new URL(this.config.espn.leagueUrl);
         playersUrl.searchParams.delete("view");
         playersUrl.searchParams.append("view", "kona_player_info");
-        const playersResponse = await this.getJson(playersUrl.toString(), "league");
+        const playersResponse = await this.getJson(playersUrl.toString(), "league", { deadlineAt });
         league = { ...league, availablePlayers: normalizeAvailablePlayers(playersResponse.players) };
-      } catch {
+      } catch (error) {
+        if (error?.code === "DEADLINE_EXCEEDED") throw error;
         // Availability remains explicitly missing; the worker will block dependent acquisitions.
       }
     }
-    const schedule = this.config.espn.scheduleUrl ? await this.getJson(this.config.espn.scheduleUrl, "schedule") : null;
+    const schedule = this.config.espn.scheduleUrl ? await this.getJson(this.config.espn.scheduleUrl, "schedule", { deadlineAt }) : null;
     return normalizeLeagueResponse(league, { collectedAt, schedule, leagueUrl: this.config.espn.leagueUrl });
   }
 }

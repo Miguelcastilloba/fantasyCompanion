@@ -47,7 +47,7 @@ node src/cli.js validate-report reports/2026/3/latest.json --config config.yaml
 
 `dry-run` defaults to `fixtures/sample-league.json` and does not call OpenAI. Use `--live-llm` only when you intentionally want a live model run; `worker` uses the configured key unless `FANTASY_DISABLE_LLM=true` is set.
 
-Live model requests have a 180-second timeout by default (`FANTASY_LLM_TIMEOUT_MS` can lower or raise it); timeout and provider errors become `BLOCKED` work rather than a stuck worker.
+Every job has a hard 165-second end-to-end deadline. ESPN reads are capped at 10 seconds each, Luna requests at 60 seconds each, and Discord delivery is deadline-aware. A timed-out job is marked `timed_out` and is not retried indefinitely; provider failures that finish quickly can still use the configured bounded retries. `FANTASY_JOB_TIMEOUT_MS`, `FANTASY_LLM_TIMEOUT_MS`, and `FANTASY_ESPN_TIMEOUT_MS` may lower these limits but cannot raise them.
 The configured 24k output cap is retained as a ceiling; specialist and editor calls use smaller internal budgets to keep scheduled research bounded.
 
 ## Safety boundaries

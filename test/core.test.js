@@ -9,6 +9,7 @@ import { assertAllowedReadUrl, normalizeLeagueResponse, ReadOnlyToolRegistry } f
 import { LunaClient, LunaError } from "../src/openai.js";
 import { blockedReport, createEnvelope, mergeReportPayload, renderMarkdown } from "../src/report.js";
 import { DiscordPublisher } from "../src/publisher.js";
+import { workerOnce } from "../src/orchestrator.js";
 import { enqueueDueJobs } from "../src/scheduler.js";
 import { actionByFromDeadline, cronMatches, displayTime } from "../src/time.js";
 import { semanticErrors, validateReport } from "../src/validation.js";
@@ -80,6 +81,26 @@ test("Luna client sends exactly the required model and effort", async () => {
 test("Luna client bounds a provider stream that never resolves", async () => {
   const client = new LunaClient({ apiKey: "test", timeoutMs: 10, fetchImpl: async () => new Promise(() => {}) });
   await assert.rejects(client.call({ input: "x", purpose: "timeout-test", webSearch: false }), /timed out/);
+});
+
+test("worker enforces a hard end-to-end deadline and does not retry a timed-out job", async () => {
+  const store = new Store(":memory:");
+  store.enqueueJob({ jobKey: "deadline-test", jobType: "daily_scout", availableAt: "2026-09-08T20:00:00Z" });
+  const boundedConfig = { ...config, orchestration: { ...config.orchestration, jobTimeoutMs: 25, bounded_retries: 2 } };
+  const startedAt = Date.now();
+  const result = await workerOnce({
+    store,
+    config: boundedConfig,
+    adapter: { readSnapshot: async () => snapshot },
+    luna: { call: async () => new Promise(() => {}) },
+    publisher: { publish: async () => ({ status: "sent" }) },
+    now: "2026-09-08T20:00:00Z"
+  });
+  assert.equal(result.status, "timed_out");
+  assert.ok(Date.now() - startedAt < 500, `deadline test exceeded 500ms: ${Date.now() - startedAt}ms`);
+  assert.equal(store.listJobs()[0].status, "failed");
+  assert.equal(store.listJobs()[0].attempts, 1);
+  store.close();
 });
 
 test("ESPN adapter allowlist blocks arbitrary URLs and mutations", () => {

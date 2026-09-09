@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { validateReport } from "./validation.js";
 import { renderMarkdown, writeJsonAndMarkdown } from "./report.js";
+import { DeadlineError, remainingMs } from "./deadline.js";
 
 async function atomicWrite(filePath, contents) {
   const temporary = `${filePath}.${process.pid}.${Date.now()}.tmp`;
@@ -16,9 +17,9 @@ function chunk(text, max = 1900) {
 }
 
 export class DiscordPublisher {
-  constructor({ store, config, fetchImpl = globalThis.fetch } = {}) { this.store = store; this.config = config; this.fetchImpl = fetchImpl; }
+  constructor({ store, config, fetchImpl = globalThis.fetch, timeoutMs = 5_000 } = {}) { this.store = store; this.config = config; this.fetchImpl = fetchImpl; this.timeoutMs = timeoutMs; }
 
-  async deliver(report) {
+  async deliver(report, { deadlineAt } = {}) {
     if (report.payload.status === "NO_ACTION") return { status: "suppressed", reason: "quiet NO_ACTION" };
     if (!this.config.publication.delivery.enabled) return { status: "disabled", reason: "delivery is disabled" };
     const webhook = this.config.publication.delivery.webhook;
@@ -31,7 +32,22 @@ export class DiscordPublisher {
     try {
       let response;
       for (const part of chunk(body)) {
-        response = await this.fetchImpl(webhook, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: part }) });
+        const remaining = remainingMs(deadlineAt);
+        const requestTimeoutMs = remaining === null ? this.timeoutMs : Math.min(this.timeoutMs, remaining);
+        if (requestTimeoutMs <= 0) throw new DeadlineError("Discord delivery", deadlineAt);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+        try {
+          response = await this.fetchImpl(webhook, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: part }), signal: controller.signal });
+        } catch (error) {
+          if (error?.name === "AbortError") {
+            if (deadlineAt && Date.now() >= Number(deadlineAt)) throw new DeadlineError("Discord delivery", deadlineAt);
+            throw new Error(`Discord delivery timed out after ${requestTimeoutMs}ms`);
+          }
+          throw error;
+        } finally {
+          clearTimeout(timeout);
+        }
         if (!response.ok) throw new Error(`Discord webhook failed with HTTP ${response.status}`);
       }
       this.store.setDelivery(report.report_id, { status: "sent", transport: "discord_webhook", providerReference: response?.headers?.get?.("x-ratelimit-global") || "accepted" });
@@ -46,7 +62,7 @@ export class DiscordPublisher {
 export class ReportPublisher {
   constructor({ store, config, delivery = null } = {}) { this.store = store; this.config = config; this.delivery = delivery; }
 
-  async publish(report, snapshot = null, { now } = {}) {
+  async publish(report, snapshot = null, { now, deadlineAt } = {}) {
     const validation = validateReport(report, { schemaPath: this.config.paths.schema, snapshot, config: this.config, now });
     if (!validation.valid) throw new Error(`Report validation failed: ${validation.errors.join("; ")}`);
     const files = writeJsonAndMarkdown(report, this.config.paths.reports);
@@ -57,7 +73,7 @@ export class ReportPublisher {
     this.store.insertReport(report);
     let delivery = { status: "not_configured" };
     if (this.delivery) {
-      try { delivery = await this.delivery.deliver(report); } catch (error) { delivery = { status: "failed", error: error.message }; }
+      try { delivery = await this.delivery.deliver(report, { deadlineAt }); } catch (error) { delivery = { status: "failed", error: error.message }; }
     }
     return { report, files, delivery };
   }

@@ -24,7 +24,7 @@ function args(argv) {
 
 function services(config) {
   const store = new Store(config.paths.database);
-  const adapter = new EspnReadAdapter({ config });
+  const adapter = new EspnReadAdapter({ config, timeoutMs: config.espn.timeoutMs });
   const luna = config.llm.apiKey ? new LunaClient({ apiKey: config.llm.apiKey, endpoint: config.llm.endpoint, maxOutputTokens: config.llm.max_output_tokens, timeoutMs: config.llm.timeoutMs }) : null;
   const delivery = new DiscordPublisher({ store, config });
   const publisher = new ReportPublisher({ store, config, delivery });
