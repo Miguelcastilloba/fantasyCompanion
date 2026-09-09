@@ -1,10 +1,10 @@
 # Fantasy Companion
 
-A Node.js, read-only NFL fantasy research service for league `125290435`, team `2`, season `2026`.
+A small, read-only Node.js companion for turning ESPN fantasy-football data into cited, validated research reports and optional Discord notifications.
 
-It polls the supplied ESPN league endpoint, normalizes live league state, queues deterministic research jobs in SQLite, calls only `gpt-5.6-luna` with `reasoning.effort = xhigh`, validates the complete report manifest, writes JSON and Markdown archives, and can deliver material reports to a preconfigured Discord webhook.
+It polls an ESPN league endpoint, normalizes live league state, queues deterministic research jobs in SQLite, calls only `gpt-5.6-luna` with `reasoning.effort = xhigh`, validates the complete report manifest, writes JSON and Markdown archives, and can deliver material reports to a Discord webhook.
 
-The supplied `BUILD_BRIEF.md`, prompts, and `report.schema.json` are preserved in this repository as the source specification. The direct request for Node.js is implemented here; the kit's Python CLI examples were adapted to the Node CLI below.
+The repository includes prompts, a report schema, an offline fixture, deployment templates, and tests so it can serve as a practical starting point for other fantasy leagues. The checked-in configuration is intentionally pinned to the original reference league; adapting it for another league should be a deliberate fork that updates the identity constants and ESPN allowlist tests as well as the environment values.
 
 ## Setup
 
@@ -16,11 +16,11 @@ copy .env.example .env   # Windows; keep the existing .env if one was supplied
 Set these values in `.env`:
 
 - `OPENAI_API_KEY`: used only by the deterministic server-side model client.
-- `ESPN_LEAGUE_URL`: already set to the supplied 2026 league URL.
+- `ESPN_LEAGUE_URL`: the HTTPS ESPN league read endpoint for the target league.
 - `ESPN_S2` and `ESPN_SWID` (or ESPN's browser-cookie spellings `espn_s2` and `SWID`): required if ESPN returns 401 for the league read; they never enter model prompts.
-- `DISCORD_WEBHOOK`: used only by the deterministic publisher.
+- `DISCORD_WEBHOOK`: used only by the deterministic publisher. Set `DELIVERY_ENABLED=true` when you want reports delivered.
 
-The local configuration is now enabled for Discord notifications, and a real webhook smoke test succeeded. To pause delivery, set either `publication.delivery.enabled: false` in `config.yaml` or `DELIVERY_ENABLED=false` in `.env`.
+To pause delivery, set either `publication.delivery.enabled: false` in `config.yaml` or `DELIVERY_ENABLED=false` in `.env`.
 
 ## Commands
 
