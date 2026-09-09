@@ -1,0 +1,78 @@
+{
+  "id": 125290435,
+  "seasonId": 2026,
+  "status": {
+    "isActive": true,
+    "currentScoringPeriod": 3,
+    "currentMatchupPeriod": 3,
+    "finalScoringPeriod": 18
+  },
+  "settings": {
+    "rosterSettings": {
+      "lineupSlotCounts": { "0": 1, "2": 2, "4": 2, "6": 1, "16": 1, "17": 1, "20": 1 }
+    },
+    "scoringSettings": {
+      "scoringItems": [{ "statId": 3, "points": 4 }]
+    },
+    "acquisitionSettings": {
+      "acquisitionBudget": 100,
+      "acquisitionLimit": -1,
+      "waiverProcessDays": { "3": true }
+    },
+    "waiverSettings": {
+      "type": "BID",
+      "remainingBudget": 100,
+      "claimDeadlineUtc": "2026-09-09T05:00:00Z"
+    }
+  },
+  "waiverState": {
+    "type": "BID",
+    "remainingBudget": 100,
+    "claimDeadlineUtc": "2026-09-09T05:00:00Z",
+    "processingConfirmed": false
+  },
+  "teams": [
+    {
+      "id": 2,
+      "name": "Miguel's Luna Squad",
+      "roster": {
+        "entries": [
+          {
+            "lineupSlotId": 0,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": { "player": { "id": 101, "fullName": "Example Quarterback", "defaultPositionId": 1, "proTeamId": 1, "eligibleSlots": [0, 20], "injuryStatus": "ACTIVE", "lockAtUtc": "2026-09-10T00:20:00Z" } }
+          },
+          {
+            "lineupSlotId": 2,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": { "player": { "id": 102, "fullName": "Example Running Back", "defaultPositionId": 2, "proTeamId": 2, "eligibleSlots": [2, 16, 20], "injuryStatus": "ACTIVE", "lockAtUtc": "2026-09-11T00:15:00Z" } }
+          },
+          {
+            "lineupSlotId": 20,
+            "acquisitionType": "DRAFT",
+            "playerPoolEntry": { "player": { "id": 103, "fullName": "Example Flex Player", "defaultPositionId": 4, "proTeamId": 3, "eligibleSlots": [4, 16, 20], "injuryStatus": "QUESTIONABLE", "lockAtUtc": "2026-09-12T17:00:00Z" } }
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "name": "Opponent One",
+      "roster": { "entries": [] }
+    }
+  ],
+  "availablePlayers": [
+    { "playerId": 201, "name": "Example Available Receiver", "eligibleSlotIds": [4, 16, 20], "lockAtUtc": "2026-09-12T17:00:00Z", "rosteredBy": null },
+    { "playerId": 202, "name": "Example Available Tight End", "eligibleSlotIds": [6, 16, 20], "lockAtUtc": "2026-09-13T17:00:00Z", "rosteredBy": null }
+  ],
+  "injuryReports": [
+    { "playerId": 103, "status": "QUESTIONABLE", "source": "official-fixture", "observedAt": "2026-09-08T20:00:00Z" }
+  ],
+  "pendingClaims": [],
+  "recentActivity": [],
+  "scheduleFixture": {
+    "events": [
+      { "id": "game-thursday", "date": "2026-09-10T00:20:00Z", "lockAtUtc": "2026-09-10T00:20:00Z", "competitions": [{ "id": "game-thursday", "date": "2026-09-10T00:20:00Z", "competitors": [{ "team": { "id": "1", "abbreviation": "EX1" } }, { "team": { "id": "2", "abbreviation": "EX2" } }] }] }
+    ]
+  }
+}

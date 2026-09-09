@@ -1,0 +1,158 @@
+# APPLICATION configuration; not a native OpenAI/Codex configuration file.
+version: 1
+identity:
+  league_id: 125290435
+  team_id: 2
+  season: 2026
+  scoring_period: discover_from_espn
+  display_timezone: America/Mexico_City
+  storage_timezone: UTC
+
+llm:
+  provider: openai
+  api: responses
+  model: gpt-5.6-luna
+  reasoning:
+    effort: xhigh
+  enforce_on_every_call: true
+  include_reviewer_and_repairs: true
+  allow_model_fallback: false
+  allow_effort_downgrade: false
+  max_output_tokens: 24000
+  web_tool: web_search
+  strict_structured_output: true
+  capture_tool_sources_and_timestamps: true
+  # A safety cap, not an expected output length. Incomplete/refused outputs
+  # must not be published as executable recommendations.
+
+permissions:
+  espn_mode: read_only
+  generic_http_tool: false
+  computer_use: false
+  shell_tool: false
+  espn_mutation_tools: false
+  model_can_send_messages: false
+  model_can_choose_recipients: false
+  deterministic_publisher_can_write_reports: true
+  read_tools:
+    - get_league_settings
+    - get_team_roster
+    - get_opponent_roster
+    - get_available_players
+    - get_player_usage_and_projections
+    - get_nfl_schedule
+    - get_injury_and_inactive_reports
+    - get_waiver_state
+    - get_recent_activity
+    - get_previous_reports
+    - get_execution_receipts
+
+schedule:
+  timezone: America/Mexico_City
+  clock_jobs:
+    daily_scout: "0 8,18 * * *"
+    waiver_planner: "0 18 * * 2"
+    waiver_followup: "0 8 * * 3"
+    weekly_lineup: "0 18 * * 5"
+  event_jobs:
+    pregame_coach:
+      trigger: relevant_kickoff
+      offset_minutes: -180
+    inactive_watch:
+      trigger: relevant_kickoff
+      offset_minutes: -85
+    inactive_followup:
+      agent: inactive_watch
+      trigger: relevant_kickoff
+      offset_minutes: -35
+      only_if: unresolved_status_or_material_change
+    deadline_waiver_plan:
+      agent: waiver_planner
+      trigger: verified_claim_deadline
+      offset_minutes: -360
+    deadline_waiver_refresh:
+      agent: waiver_planner
+      trigger: verified_claim_deadline
+      offset_minutes: -60
+      scope: changed_facts_and_claim_order_only
+    processed_waiver_followup:
+      agent: waiver_followup
+      trigger: waiver_processing_confirmed
+    breaking_news:
+      agent: daily_scout
+      trigger: material_change_discovered
+      requires_configured_news_source: true
+  scheduler_tick_seconds: 60
+  normal_state_poll_seconds: 900
+  relevant_pregame_state_poll_seconds: 300
+  waiver_processing_poll_seconds: 300
+  # Polling is deterministic, not a model call. These are starting defaults,
+  # subject to source access terms, throttling, and measured reliability.
+  research_editor: after_each_research_batch
+  coalesce_overlapping_clock_jobs: true
+  coalesced_jobs_must_cover_daily_scout_checklist: true
+  bootstrap: refresh_state_and_run_current_period_baseline
+  fantasy_active_periods_only: true
+  late_start: skip_expired_events_and_research_next_actionable_window
+
+freshness:
+  action_buffer_minutes: 15
+  analyst_max_report_age_minutes: 120
+  pregame_max_report_age_minutes: 30
+  live_state_max_age_for_publication_seconds: 120
+  expiry_rule: minimum_of_age_limit_and_earliest_relevant_deadline_minus_buffer
+  refresh_after_long_research: true
+  invalidate_on_material_state_change: true
+  stale_report_behavior: block_actions_and_alert
+  after_action_cutoff: alert_only
+
+orchestration:
+  durable_queue: sqlite
+  max_parallel_specialists: 2
+  single_publisher_per_league_team_period: true
+  persistent_job_deduplication: true
+  publication_sequence_assigned_by_host: true
+  validate_latest_state_before_publish: true
+  publish_complete_decision_manifest: true
+  preserve_unexpired_decisions_when_merging_new_work: true
+  full_report_supersession: true
+  prevent_old_jobs_overwriting_new_state: true
+  prioritize: [inactive_watch, pregame_coach, waiver_deadline, other]
+  bounded_retries: 2
+  retry_past_action_deadline: false
+  league_reads_on_failure: fail_closed
+
+research_policy:
+  objective: maximize_season_championship_chance_subject_to_legal_roster
+  do_not_churn_for_tiny_projection_differences: true
+  use_live_player_ids_not_name_only_matching: true
+  protected_players_source: operator_policy_and_espn_undroppables
+  protect_rest_of_season_value: true
+  reconstruct_missing_statistics: false
+  report_missing_statistics_explicitly: true
+  any_deadline_unknown: block_deadline_dependent_recommendation
+  no_medical_diagnoses: true
+  no_trades_or_commissioner_actions: true
+  confidence_is_not_permission: true
+
+publication:
+  local_archive: ./reports
+  outputs: [json, markdown]
+  render_markdown_from_validated_json: true
+  new_report_trigger:
+    - material_recommendation_change
+    - approaching_unresolved_deadline
+    - blocked_or_failed_critical_research
+    - revalidated_still_pending_action
+  suppress_unchanged_no_action_notifications: true
+  same_action_keeps_stable_decision_key: true
+  delivery:
+    enabled: true
+    adapter: discord_webhook
+    subject_prefix: FANTASY_RESEARCH_READY
+    webhook_env: DISCORD_WEBHOOK
+    allow_llm_recipient_override: false
+    body: human_summary_and_complete_validated_json
+    integration_dry_run_required: true
+  execution_capability_confirmed: false
+  # This kit never creates or changes your ChatGPT task or your ESPN team.

@@ -1,0 +1,8 @@
+# TEMPLATE ONLY: install dependencies and verify dry-run first.
+# Install as the dedicated fantasy research service account.
+# Provision /opt/fantasy-research/var as writable by that account.
+# This ticks every minute in any server timezone. The app interprets its own
+# clock jobs in America/Mexico_City and queues workers without waiting for LLMs.
+SHELL=/bin/sh
+PATH=/usr/local/bin:/usr/bin:/bin
+* * * * * /usr/bin/flock -n /opt/fantasy-research/var/tick.lock /usr/bin/node /opt/fantasy-research/src/cli.js tick --config /etc/fantasy-research/config.yaml >> /opt/fantasy-research/var/scheduler.log 2>&1

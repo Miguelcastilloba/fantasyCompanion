@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "report_id": "example-not-live-not-actionable",
+  "sequence": 0,
+  "supersedes_report_id": null,
+  "league_id": 125290435,
+  "team_id": 2,
+  "season": 2026,
+  "scoring_period_id": null,
+  "generated_at": "2026-09-09T05:13:00Z",
+  "expires_at": "2026-09-09T05:43:00Z",
+  "source_snapshot_at": null,
+  "relevant_state_hash": null,
+  "display_timezone": "America/Mexico_City",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "xhigh",
+  "sources": [],
+  "payload": {
+    "status": "BLOCKED",
+    "human_summary": "Illustrative report only. No live league reads have been performed. Do not change the team.",
+    "scope": "Implementation-kit schema example; not a research run.",
+    "findings": [],
+    "recommendations": [],
+    "retired_decision_keys": [],
+    "risks_and_unknowns": [
+      "League rules and roster unverified.",
+      "Report delivery and execution capability untested."
+    ],
+    "next_check_at": null
+  }
+}

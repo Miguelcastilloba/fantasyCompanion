@@ -1,0 +1,22 @@
+# TEMPLATE ONLY: install dependencies and verify dry-run first.
+[Unit]
+Description=Read-only NFL fantasy research worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fantasyresearch
+Group=fantasyresearch
+WorkingDirectory=/opt/fantasy-research
+EnvironmentFile=/etc/fantasy-research/service.env
+ExecStart=/usr/bin/node /opt/fantasy-research/src/cli.js worker --config /etc/fantasy-research/config.yaml
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/fantasy-research/var /opt/fantasy-research/reports
+
+[Install]
+WantedBy=multi-user.target

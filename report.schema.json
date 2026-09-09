@@ -1,0 +1,623 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FantasyResearchReport",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "1.0"
+      ]
+    },
+    "report_id": {
+      "type": "string"
+    },
+    "sequence": {
+      "type": "integer"
+    },
+    "supersedes_report_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "league_id": {
+      "type": "integer"
+    },
+    "team_id": {
+      "type": "integer"
+    },
+    "season": {
+      "type": "integer"
+    },
+    "scoring_period_id": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source_snapshot_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "relevant_state_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "display_timezone": {
+      "type": "string",
+      "enum": [
+        "America/Mexico_City"
+      ]
+    },
+    "model": {
+      "type": "string",
+      "enum": [
+        "gpt-5.6-luna"
+      ]
+    },
+    "reasoning_effort": {
+      "type": "string",
+      "enum": [
+        "xhigh"
+      ]
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "ESPN_READ",
+              "OFFICIAL_NFL_TEAM",
+              "ORIGINAL_REPORTING",
+              "DATA_PROVIDER",
+              "OPERATOR_POLICY"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retrieved_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "snapshot_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "source_id",
+          "kind",
+          "title",
+          "url",
+          "published_at",
+          "retrieved_at",
+          "snapshot_reference"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "payload": {
+      "$ref": "#/$defs/ReportPayload"
+    }
+  },
+  "required": [
+    "schema_version",
+    "report_id",
+    "sequence",
+    "supersedes_report_id",
+    "league_id",
+    "team_id",
+    "season",
+    "scoring_period_id",
+    "generated_at",
+    "expires_at",
+    "source_snapshot_at",
+    "relevant_state_hash",
+    "display_timezone",
+    "model",
+    "reasoning_effort",
+    "sources",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ReportPayload": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ACTIONABLE",
+            "NO_ACTION",
+            "BLOCKED",
+            "ALERT_ONLY"
+          ]
+        },
+        "human_summary": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string"
+              },
+              "player_ids": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "source_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "material": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "summary",
+              "player_ids",
+              "source_ids",
+              "material"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "recommendations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "decision_key": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "SET_LINEUP",
+                  "ADD_DROP",
+                  "WAIVER_CLAIM",
+                  "IR_MOVE",
+                  "HOLD",
+                  "WATCH"
+                ]
+              },
+              "research_state": {
+                "type": "string",
+                "enum": [
+                  "READY",
+                  "CONDITIONAL",
+                  "NEEDS_RESEARCH"
+                ]
+              },
+              "priority": {
+                "type": "string",
+                "enum": [
+                  "URGENT",
+                  "BEFORE_DEADLINE",
+                  "ROUTINE"
+                ]
+              },
+              "player_ids": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "add_player_id": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "drop_player_id": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lineup_changes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "player_id": {
+                      "type": "integer"
+                    },
+                    "player_name": {
+                      "type": "string"
+                    },
+                    "from_slot_id": {
+                      "type": "integer"
+                    },
+                    "to_slot_id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "player_id",
+                    "player_name",
+                    "from_slot_id",
+                    "to_slot_id"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "summary": {
+                "type": "string"
+              },
+              "rationale": {
+                "type": "string"
+              },
+              "counterargument": {
+                "type": "string"
+              },
+              "horizon": {
+                "type": "string",
+                "enum": [
+                  "THIS_WEEK",
+                  "NEXT_THREE_WEEKS",
+                  "REST_OF_SEASON"
+                ]
+              },
+              "expected_points_delta": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "confidence": {
+                "type": "string",
+                "enum": [
+                  "HIGH",
+                  "MEDIUM",
+                  "LOW"
+                ]
+              },
+              "source_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "preconditions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "verified": {
+                      "type": "boolean"
+                    },
+                    "observed_at": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "source_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "description",
+                    "verified",
+                    "observed_at",
+                    "source_ids"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "invalidated_by": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "relevant_deadline_utc": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "action_by_utc": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "expires_at": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "suggested_bid": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "bid_policy_reference": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "alternative_group_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "alternative_rank": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "depends_on_decision_keys": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "alternatives": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "player_id": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "condition": {
+                      "type": "string"
+                    },
+                    "latest_usable_at": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "source_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "player_id",
+                    "description",
+                    "condition",
+                    "latest_usable_at",
+                    "source_ids"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "unresolved_requirements": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "authorization_granted_by_report": {
+                "type": "boolean",
+                "enum": [
+                  false
+                ]
+              }
+            },
+            "required": [
+              "decision_key",
+              "type",
+              "research_state",
+              "priority",
+              "player_ids",
+              "add_player_id",
+              "drop_player_id",
+              "lineup_changes",
+              "summary",
+              "rationale",
+              "counterargument",
+              "horizon",
+              "expected_points_delta",
+              "confidence",
+              "source_ids",
+              "preconditions",
+              "invalidated_by",
+              "relevant_deadline_utc",
+              "action_by_utc",
+              "expires_at",
+              "suggested_bid",
+              "bid_policy_reference",
+              "alternative_group_id",
+              "alternative_rank",
+              "depends_on_decision_keys",
+              "alternatives",
+              "unresolved_requirements",
+              "authorization_granted_by_report"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "retired_decision_keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "risks_and_unknowns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "next_check_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "human_summary",
+        "scope",
+        "findings",
+        "recommendations",
+        "retired_decision_keys",
+        "risks_and_unknowns",
+        "next_check_at"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

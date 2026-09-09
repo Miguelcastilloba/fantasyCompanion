@@ -1,0 +1,13 @@
+Artifact checks completed successfully:
+- config.yaml parses as YAML.
+- Model is gpt-5.6-luna and reasoning effort is xhigh.
+- Research permission is read_only; delivery defaults to disabled.
+- Scheduler timezone is America/Mexico_City.
+- JSON Schema is structurally valid.
+- Illustrative BLOCKED report validates, including date-time formats.
+- Unexpected top-level fields are rejected.
+- Shared prompt and seven role prompts are present.
+
+Not tested: a live ESPN reader, actual league settings, live OpenAI calls,
+cron/worker implementation, report transport, or ChatGPT execution.
+Those components must be implemented and verified before deployment.

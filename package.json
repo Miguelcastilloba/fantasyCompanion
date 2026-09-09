@@ -1,0 +1,27 @@
+{
+  "name": "fantasy-companion",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only NFL fantasy research staff with strict reports and Discord delivery.",
+  "type": "module",
+  "bin": {
+    "fantasy-research": "src/cli.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/cli.js",
+    "start:tick": "node src/cli.js tick --config config.yaml",
+    "start:worker": "node src/cli.js worker --config config.yaml"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "better-sqlite3": "^11.10.0",
+    "dotenv": "^16.4.7",
+    "luxon": "^3.6.1",
+    "yaml": "^2.7.0"
+  }
+}
